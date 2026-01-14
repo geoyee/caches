@@ -9,15 +9,13 @@
 #ifndef CUSTOM_HASHMAP
 template <typename Key, typename Value, typename Hash = std::hash<Key>,
           typename Eq = std::equal_to<Key>>
-using lru_cache_t = typename caches::fixed_sized_cache<
-    Key, Value, caches::LRUCachePolicy, Hash, Eq,
-    std::unordered_map<Key, caches::WrappedValue<Value>, Hash, Eq>>;
+using lru_cache_t = typename caches::fixed_sized_cache<Key, Value, caches::LRUCachePolicy,
+                                                       std::unordered_map, Hash, Eq>;
 #else
 template <typename Key, typename Value, typename Hash = std::hash<Key>,
           typename Eq = std::equal_to<Key>>
-using lru_cache_t = typename caches::fixed_sized_cache<
-    Key, Value, caches::LRUCachePolicy, Hash, Eq,
-    phmap::node_hash_map<Key, caches::WrappedValue<Value>, Hash, Eq>>;
+using lru_cache_t = typename caches::fixed_sized_cache<Key, Value, caches::LRUCachePolicy,
+                                                       phmap::node_hash_map, Hash, Eq>;
 #endif /* CUSTOM_HASHMAP */
 
 #include <array>

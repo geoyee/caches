@@ -29,19 +29,19 @@ using WrappedValue = std::shared_ptr<V>;
  * \tparam Key Type of a key (should be hashable)
  * \tparam Value Type of a value stored in the cache
  * \tparam Policy Type of a policy to be used with the cache
- * \tparam Hash Type of a hash function of key to be used with the cache
- * \tparam Eq Type of a a equal function of key to be used with the cache
  * \tparam HashMap Type of a hashmap to use for cache operations. Should have `std::unordered_map`
  * compatible interface
+ * \tparam Hash Type of a hash function of key to be used with the cache
+ * \tparam Eq Type of a a equal function of key to be used with the cache
  */
 template <typename Key, typename Value,
           template <typename, typename, typename> class Policy = NoCachePolicy,
-          typename Hash = std::hash<Key>, typename Eq = std::equal_to<Key>,
-          typename HashMap = std::unordered_map<Key, WrappedValue<Value>, Hash, Eq>>
+          template <typename, typename, typename, typename> class HashMap = std::unordered_map,
+          typename Hash = std::hash<Key>, typename Eq = std::equal_to<Key>>
 class fixed_sized_cache
 {
   public:
-    using map_type = HashMap;
+    using map_type = HashMap<Key, WrappedValue<Value>, Hash, Eq>;
     using value_type = typename map_type::mapped_type;
     using iterator = typename map_type::iterator;
     using const_iterator = typename map_type::const_iterator;
