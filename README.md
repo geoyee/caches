@@ -7,9 +7,9 @@
 
 This project implements a simple thread-safe cache with several page replacement policies:
 
-* Least Recently Used
-* First-In/First-Out
-* Least Frequently Used
+- Least Recently Used
+- First-In/First-Out
+- Least Frequently Used
 
 More about cache algorithms and policy you could read on [Wikipedia](https://en.wikipedia.org/wiki/Cache_algorithms)
 
@@ -21,9 +21,9 @@ removes the last element which key is the last in the internal container).
 
 Currently, there is only three of them:
 
-* `fifo_cache_policy.hpp`
-* `lfu_cache_policy.hpp`
-* `lru_cache_policy.hpp`
+- `fifo_cache_policy.hpp`
+- `lfu_cache_policy.hpp`
+- `lru_cache_policy.hpp`
 
 Example for the LRU policy:
 
@@ -34,7 +34,7 @@ Example for the LRU policy:
 
 // alias for an easy class typing
 template <typename Key, typename Value>
-using lru_cache_t = typename caches::fixed_sized_cache<Key, Value, caches::LRUCachePolicy>;
+using lru_cache_t = typename caches::fixed_sized_cache<Key, Value, caches::LRUCachePolicy<Key>>;
 
 void foo() {
   constexpr std::size_t CACHE_SIZE = 256;
@@ -42,7 +42,7 @@ void foo() {
 
   cache.Put("Hello", 1);
   cache.Put("world", 2);
-  
+
   const auto hello_value = cache.Get("Hello");
   const auto world_value = cache.Get("world");
 
@@ -62,7 +62,7 @@ For example, you can declare LRU cache type like that:
 #include "caches/cache.hpp"
 
 template <typename Key, typename Value>
-using lru_cache_t = typename caches::fixed_sized_cache<Key, Value, caches::LRUCachePolicy,
+using lru_cache_t = typename caches::fixed_sized_cache<Key, Value, caches::LRUCachePolicy<Key>,
                                                        phmap::node_hash_map<Key, Value>>;
 // ...
 lru_cache_t<std::string, std::size_t> cache{16};
@@ -78,10 +78,10 @@ The only requirement is a compatible C++11 compiler.
 
 This project was tested in the environments listed below:
 
-* MinGW64 ([MSYS2 project](https://msys2.github.io/))
-    * Clang 13.0+
-    * GCC 7+
-* MSVC (VS 2015)
+- MinGW64 ([MSYS2 project](https://msys2.github.io/))
+  - Clang 13.0+
+  - GCC 7+
+- MSVC (VS 2015)
 
 If you have any issues with the library building, please let me know.
 
