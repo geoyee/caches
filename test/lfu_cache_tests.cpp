@@ -8,11 +8,11 @@
 
 #ifndef CUSTOM_HASHMAP
 template <typename Key, typename Value>
-using lfu_cache_t = typename caches::fixed_sized_cache<Key, Value, caches::LFUCachePolicy>;
+using lfu_cache_t = typename caches::fixed_sized_cache<Key, Value, caches::LFUCachePolicy<Key>>;
 #else
 template <typename Key, typename Value>
 using lfu_cache_t =
-    typename caches::fixed_sized_cache<Key, Value, caches::LFUCachePolicy,
+    typename caches::fixed_sized_cache<Key, Value, caches::LFUCachePolicy<Key>,
                                        phmap::node_hash_map<Key, caches::WrappedValue<Value>>>;
 #endif /* CUSTOM_HASHMAP */
 

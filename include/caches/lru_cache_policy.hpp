@@ -32,8 +32,10 @@ namespace caches
  * Cache elements: B, C, D
  * ```
  * \tparam Key Type of a key a policy works with
+ * \tparam Hash Type of a hash a policy works with
+ * \tparam Eq Type of a equal a policy works with
  */
-template <typename Key>
+template <typename Key, typename Hash = std::hash<Key>, typename Eq = std::equal_to<Key>>
 class LRUCachePolicy : public ICachePolicy<Key>
 {
   public:
@@ -69,7 +71,7 @@ class LRUCachePolicy : public ICachePolicy<Key>
 
   private:
     std::list<Key> lru_queue;
-    std::unordered_map<Key, lru_iterator> key_finder;
+    std::unordered_map<Key, lru_iterator, Hash, Eq> key_finder;
 };
 } // namespace caches
 

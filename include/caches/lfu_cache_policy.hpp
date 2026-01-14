@@ -25,8 +25,10 @@ namespace caches
  * 10 times and `B` - only 2. When you want to add a key `C` the LFU policy returns `B`
  * as a replacement candidate.
  * \tparam Key Type of a key a policy works with
+ * \tparam Hash Type of a hash a policy works with
+ * \tparam Eq Type of a equal a policy works with
  */
-template <typename Key>
+template <typename Key, typename Hash = std::hash<Key>, typename Eq = std::equal_to<Key>>
 class LFUCachePolicy : public ICachePolicy<Key>
 {
   public:
@@ -69,7 +71,7 @@ class LFUCachePolicy : public ICachePolicy<Key>
 
   private:
     std::multimap<std::size_t, Key> frequency_storage;
-    std::unordered_map<Key, lfu_iterator> lfu_storage;
+    std::unordered_map<Key, lfu_iterator, Hash, Eq> lfu_storage;
 };
 } // namespace caches
 

@@ -4,7 +4,7 @@
 #include <stdexcept>
 
 template <typename K, typename V>
-using no_policy_cache_t = typename caches::fixed_sized_cache<K, V, caches::NoCachePolicy>;
+using no_policy_cache_t = typename caches::fixed_sized_cache<K, V, caches::NoCachePolicy<K>>;
 
 TEST(NoPolicyCache, Add_one_element)
 {
@@ -125,10 +125,12 @@ TEST(NoPolicyCache, GetWithReplacement)
 
     std::string replaced_key;
 
-    for (size_t i = 1; i <= 2; ++i) {
+    for (size_t i = 1; i <= 2; ++i)
+    {
         const auto key = std::to_string(i);
 
-        if (!cache.Cached(key)) {
+        if (!cache.Cached(key))
+        {
             replaced_key = key;
         }
     }

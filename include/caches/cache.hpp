@@ -32,8 +32,10 @@ using WrappedValue = std::shared_ptr<V>;
  * \tparam HashMap Type of a hashmap to use for cache operations. Should have `std::unordered_map`
  * compatible interface
  */
-template <typename Key, typename Value, template <typename> class Policy = NoCachePolicy,
-          typename HashMap = std::unordered_map<Key, WrappedValue<Value>>>
+template <typename Key, typename Value,
+          typename Policy = NoCachePolicy<Key, std::hash<Key>, std::equal_to<Key>>,
+          typename HashMap =
+              std::unordered_map<Key, WrappedValue<Value>, std::hash<Key>, std::equal_to<Key>>>
 class fixed_sized_cache
 {
   public:
@@ -42,8 +44,7 @@ class fixed_sized_cache
     using iterator = typename map_type::iterator;
     using const_iterator = typename map_type::const_iterator;
     using operation_guard = typename std::lock_guard<std::mutex>;
-    using on_erase_cb =
-        typename std::function<void(const Key &key, const value_type &value)>;
+    using on_erase_cb = typename std::function<void(const Key &key, const value_type &value)>;
 
     /**
      * \brief Fixed sized cache constructor
@@ -53,7 +54,7 @@ class fixed_sized_cache
      * \param[in] on_erase on_erase_cb function to be called when cache's element get erased
      */
     explicit fixed_sized_cache(
-        size_t max_size, const Policy<Key> policy = Policy<Key>{},
+        size_t max_size, const Policy policy = Policy{},
         on_erase_cb on_erase = [](const Key &, const value_type &) {})
         : cache_policy{policy}, max_cache_size{max_size}, on_erase_callback{on_erase}
     {
@@ -110,8 +111,7 @@ class fixed_sized_cache
         operation_guard lock{safe_op};
         const auto result = GetInternal(key);
 
-        return std::make_pair(result.second ? result.first->second : nullptr,
-                              result.second);
+        return std::make_pair(result.second ? result.first->second : nullptr, result.second);
     }
 
     /**
@@ -250,7 +250,7 @@ class fixed_sized_cache
 
   private:
     map_type cache_items_map;
-    mutable Policy<Key> cache_policy;
+    mutable Policy cache_policy;
     mutable std::mutex safe_op;
     std::size_t max_cache_size;
     on_erase_cb on_erase_callback;

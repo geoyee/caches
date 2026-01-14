@@ -10,11 +10,11 @@
 
 #ifndef CUSTOM_HASHMAP
 template <typename Key, typename Value>
-using fifo_cache_t = typename caches::fixed_sized_cache<Key, Value, caches::FIFOCachePolicy>;
+using fifo_cache_t = typename caches::fixed_sized_cache<Key, Value, caches::FIFOCachePolicy<Key>>;
 #else
 template <typename Key, typename Value>
 using fifo_cache_t =
-    typename caches::fixed_sized_cache<Key, Value, caches::FIFOCachePolicy,
+    typename caches::fixed_sized_cache<Key, Value, caches::FIFOCachePolicy<Key>,
                                        phmap::node_hash_map<Key, std::shared_ptr<Value>>>;
 #endif /* CUSTOM_HASHMAP */
 

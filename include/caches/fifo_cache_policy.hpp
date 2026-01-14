@@ -30,8 +30,10 @@ namespace caches
  * ```
  * An so on, the next candidate will be `B`, then `C`, etc.
  * \tparam Key Type of a key a policy works with
+ * \tparam Hash Type of a hash a policy works with
+ * \tparam Eq Type of a equal a policy works with
  */
-template <typename Key>
+template <typename Key, typename Hash = std::hash<Key>, typename Eq = std::equal_to<Key>>
 class FIFOCachePolicy : public ICachePolicy<Key>
 {
   public:
@@ -45,12 +47,14 @@ class FIFOCachePolicy : public ICachePolicy<Key>
         fifo_queue.emplace_front(key);
         key_lookup[key] = fifo_queue.begin();
     }
+
     // handle request to the key-element in a cache
     void Touch(const Key &key) noexcept override
     {
         // nothing to do here in the FIFO strategy
         (void)key;
     }
+
     // handle element deletion from a cache
     void Erase(const Key &key) noexcept override
     {
@@ -67,7 +71,7 @@ class FIFOCachePolicy : public ICachePolicy<Key>
 
   private:
     std::list<Key> fifo_queue;
-    std::unordered_map<Key, fifo_iterator> key_lookup;
+    std::unordered_map<Key, fifo_iterator, Hash, Eq> key_lookup;
 };
 } // namespace caches
 

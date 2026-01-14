@@ -31,6 +31,7 @@ class ICachePolicy
      * \param key
      */
     virtual void Touch(const Key &key) = 0;
+
     /**
      * \brief Handle element deletion from a cache
      * \param[in] key Key that should be used by the policy
@@ -51,8 +52,10 @@ class ICachePolicy
  * underlying container. As unordered container can be used in the implementation
  * there are no warranties that the first/last added key will be erased
  * \tparam Key Type of a key a policy works with
+ * \tparam Hash Type of a hash a policy works with
+ * \tparam Eq Type of a equal a policy works with
  */
-template <typename Key>
+template <typename Key, typename Hash = std::hash<Key>, typename Eq = std::equal_to<Key>>
 class NoCachePolicy : public ICachePolicy<Key>
 {
   public:
@@ -82,7 +85,7 @@ class NoCachePolicy : public ICachePolicy<Key>
     }
 
   private:
-    std::unordered_set<Key> key_storage;
+    std::unordered_set<Key, Hash, Eq> key_storage;
 };
 } // namespace caches
 
