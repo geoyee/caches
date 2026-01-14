@@ -12,13 +12,13 @@
 template <typename Key, typename Value, typename Hash = std::hash<Key>,
           typename Eq = std::equal_to<Key>>
 using fifo_cache_t = typename caches::fixed_sized_cache<
-    Key, Value, caches::FIFOCachePolicy<Key, Hash, Eq>,
+    Key, Value, caches::FIFOCachePolicy, Hash, Eq,
     std::unordered_map<Key, caches::WrappedValue<Value>, Hash, Eq>>;
 #else
 template <typename Key, typename Value, typename Hash = std::hash<Key>,
           typename Eq = std::equal_to<Key>>
 using fifo_cache_t = typename caches::fixed_sized_cache<
-    Key, Value, caches::FIFOCachePolicy<Key, Hash, Eq>,
+    Key, Value, caches::FIFOCachePolicy, Hash, Eq,
     phmap::node_hash_map<Key, caches::WrappedValue<Value>, Hash, Eq>>;
 #endif /* CUSTOM_HASHMAP */
 

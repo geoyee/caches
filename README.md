@@ -34,7 +34,7 @@ Example for the LRU policy:
 
 // alias for an easy class typing
 template <typename Key, typename Value>
-using lru_cache_t = typename caches::fixed_sized_cache<Key, Value, caches::LRUCachePolicy<Key>>;
+using lru_cache_t = typename caches::fixed_sized_cache<Key, Value, caches::LRUCachePolicy>;
 
 void foo() {
   constexpr std::size_t CACHE_SIZE = 256;
@@ -62,7 +62,7 @@ For example, you can declare LRU cache type like that:
 #include "caches/cache.hpp"
 
 template <typename Key, typename Value>
-using lru_cache_t = typename caches::fixed_sized_cache<Key, Value, caches::LRUCachePolicy<Key>,
+using lru_cache_t = typename caches::fixed_sized_cache<Key, Value, caches::LRUCachePolicy,
                                                        phmap::node_hash_map<Key, Value>>;
 // ...
 lru_cache_t<std::string, std::size_t> cache{16};

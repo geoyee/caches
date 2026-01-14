@@ -29,13 +29,15 @@ using WrappedValue = std::shared_ptr<V>;
  * \tparam Key Type of a key (should be hashable)
  * \tparam Value Type of a value stored in the cache
  * \tparam Policy Type of a policy to be used with the cache
+ * \tparam Hash Type of a hash function of key to be used with the cache
+ * \tparam Eq Type of a a equal function of key to be used with the cache
  * \tparam HashMap Type of a hashmap to use for cache operations. Should have `std::unordered_map`
  * compatible interface
  */
 template <typename Key, typename Value,
-          typename Policy = NoCachePolicy<Key, std::hash<Key>, std::equal_to<Key>>,
-          typename HashMap =
-              std::unordered_map<Key, WrappedValue<Value>, std::hash<Key>, std::equal_to<Key>>>
+          template <typename, typename, typename> class Policy = NoCachePolicy,
+          typename Hash = std::hash<Key>, typename Eq = std::equal_to<Key>,
+          typename HashMap = std::unordered_map<Key, WrappedValue<Value>, Hash, Eq>>
 class fixed_sized_cache
 {
   public:
@@ -54,7 +56,7 @@ class fixed_sized_cache
      * \param[in] on_erase on_erase_cb function to be called when cache's element get erased
      */
     explicit fixed_sized_cache(
-        size_t max_size, const Policy policy = Policy{},
+        size_t max_size, const Policy<Key, Hash, Eq> policy = Policy<Key, Hash, Eq>{},
         on_erase_cb on_erase = [](const Key &, const value_type &) {})
         : cache_policy{policy}, max_cache_size{max_size}, on_erase_callback{on_erase}
     {
@@ -187,8 +189,7 @@ class fixed_sized_cache
     {
         operation_guard lock{safe_op};
 
-        std::for_each(begin(), end(),
-                      [&](const std::pair<const Key, value_type> &el)
+        std::for_each(begin(), end(), [&](const std::pair<const Key, value_type> &el)
                       { cache_policy.Erase(el.first); });
         cache_items_map.clear();
     }
@@ -250,7 +251,7 @@ class fixed_sized_cache
 
   private:
     map_type cache_items_map;
-    mutable Policy cache_policy;
+    mutable Policy<Key, Hash, Eq> cache_policy;
     mutable std::mutex safe_op;
     std::size_t max_cache_size;
     on_erase_cb on_erase_callback;

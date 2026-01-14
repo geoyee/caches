@@ -6,7 +6,7 @@
 template <typename Key, typename Value, typename Hash = std::hash<Key>,
           typename Eq = std::equal_to<Key>>
 using no_policy_cache_t = typename caches::fixed_sized_cache<
-    Key, Value, caches::NoCachePolicy<Key, Hash, Eq>,
+    Key, Value, caches::NoCachePolicy, Hash, Eq,
     std::unordered_map<Key, caches::WrappedValue<Value>, Hash, Eq>>;
 
 TEST(NoPolicyCache, Add_one_element)
