@@ -7,13 +7,17 @@
 #endif /* CUSTOM_HASHMAP */
 
 #ifndef CUSTOM_HASHMAP
-template <typename Key, typename Value>
-using lfu_cache_t = typename caches::fixed_sized_cache<Key, Value, caches::LFUCachePolicy<Key>>;
+template <typename Key, typename Value, typename Hash = std::hash<Key>,
+          typename Eq = std::equal_to<Key>>
+using lfu_cache_t = typename caches::fixed_sized_cache<
+    Key, Value, caches::LFUCachePolicy<Key, Hash, Eq>,
+    std::unordered_map<Key, caches::WrappedValue<Value>, Hash, Eq>>;
 #else
-template <typename Key, typename Value>
-using lfu_cache_t =
-    typename caches::fixed_sized_cache<Key, Value, caches::LFUCachePolicy<Key>,
-                                       phmap::node_hash_map<Key, caches::WrappedValue<Value>>>;
+template <typename Key, typename Value, typename Hash = std::hash<Key>,
+          typename Eq = std::equal_to<Key>>
+using lfu_cache_t = typename caches::fixed_sized_cache<
+    Key, Value, caches::LFUCachePolicy<Key, Hash, Eq>,
+    phmap::node_hash_map<Key, caches::WrappedValue<Value>, Hash, Eq>>;
 #endif /* CUSTOM_HASHMAP */
 
 #include <array>
@@ -240,4 +244,63 @@ TEST(LFUCache, InvalidSize)
 {
     using test_type = lfu_cache_t<std::string, int>;
     EXPECT_THROW(test_type cache{0}, std::invalid_argument);
+}
+
+TEST(LFUCache, UserData_Key)
+{
+    // Assuming that this structure comes from a third-party library,
+    // it is not easy to add methods for hash calculation and equality determination to it,
+    // so we can construct an imitation function that passes a template argument to the
+    struct Time
+    {
+        size_t hour, minute, second;
+    };
+
+    struct TimeHash
+    {
+        size_t operator()(const Time &t) const
+        {
+            size_t value = (t.hour << 12) | (t.minute << 6) | t.second;
+            return std::hash<size_t>()(value);
+        }
+    };
+
+    struct TimeEq
+    {
+        bool operator()(const Time &t1, const Time &t2) const
+        {
+            return t1.hour == t2.hour && t1.minute == t2.minute && t1.second == t2.second;
+        }
+    };
+
+    constexpr size_t FIRST_FREQ = 10;
+    constexpr size_t SECOND_FREQ = 9;
+    constexpr size_t THIRD_FREQ = 8;
+    lfu_cache_t<Time, int, TimeHash, TimeEq> cache(3);
+
+    cache.Put(Time{7, 0, 0}, 1);
+    cache.Put(Time{7, 0, 1}, 2);
+    cache.Put(Time{7, 0, 2}, 3);
+
+    for (size_t i = 0; i < FIRST_FREQ; ++i)
+    {
+        EXPECT_EQ(*cache.Get(Time{7, 0, 1}), 2);
+    }
+
+    for (size_t i = 0; i < SECOND_FREQ; ++i)
+    {
+        EXPECT_EQ(*cache.Get(Time{7, 0, 2}), 3);
+    }
+
+    for (size_t i = 0; i < THIRD_FREQ; ++i)
+    {
+        EXPECT_EQ(*cache.Get(Time{7, 0, 0}), 1);
+    }
+
+    cache.Put(Time{7, 1, 0}, 4);
+
+    EXPECT_EQ(*cache.Get(Time{7, 0, 1}), 2);
+    EXPECT_EQ(*cache.Get(Time{7, 0, 2}), 3);
+    EXPECT_EQ(*cache.Get(Time{7, 1, 0}), 4);
+    EXPECT_THROW(cache.Get(Time{7, 0, 0}), std::range_error);
 }

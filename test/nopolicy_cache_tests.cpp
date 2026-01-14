@@ -3,8 +3,11 @@
 #include <gtest/gtest.h>
 #include <stdexcept>
 
-template <typename K, typename V>
-using no_policy_cache_t = typename caches::fixed_sized_cache<K, V, caches::NoCachePolicy<K>>;
+template <typename Key, typename Value, typename Hash = std::hash<Key>,
+          typename Eq = std::equal_to<Key>>
+using no_policy_cache_t = typename caches::fixed_sized_cache<
+    Key, Value, caches::NoCachePolicy<Key, Hash, Eq>,
+    std::unordered_map<Key, caches::WrappedValue<Value>, Hash, Eq>>;
 
 TEST(NoPolicyCache, Add_one_element)
 {
@@ -147,4 +150,67 @@ TEST(NoPolicyCache, InvalidSize)
 {
     using test_type = no_policy_cache_t<std::string, int>;
     EXPECT_THROW(test_type cache{0}, std::invalid_argument);
+}
+
+TEST(NoPolicyCache, UserData_Key)
+{
+    // Assuming that this structure comes from a third-party library,
+    // it is not easy to add methods for hash calculation and equality determination to it,
+    // so we can construct an imitation function that passes a template argument to the
+    struct Time
+    {
+        size_t hour, minute, second;
+    };
+
+    struct TimeHash
+    {
+        size_t operator()(const Time &t) const
+        {
+            size_t value = (t.hour << 12) | (t.minute << 6) | t.second;
+            return std::hash<size_t>()(value);
+        }
+    };
+
+    struct TimeEq
+    {
+        bool operator()(const Time &t1, const Time &t2) const
+        {
+            return t1.hour == t2.hour && t1.minute == t2.minute && t1.second == t2.second;
+        }
+    };
+
+    constexpr size_t FIRST_FREQ = 10;
+    constexpr size_t SECOND_FREQ = 9;
+    constexpr size_t THIRD_FREQ = 8;
+    no_policy_cache_t<Time, int, TimeHash, TimeEq> cache(2);
+
+    cache.Put(Time{7, 0, 1}, 1);
+    cache.Put(Time{7, 0, 2}, 2);
+
+    auto element1 = cache.Get(Time{7, 0, 1});
+    auto element2 = cache.Get(Time{7, 0, 2});
+    EXPECT_EQ(*element1, 1);
+    EXPECT_EQ(*element2, 2);
+    cache.Put(Time{7, 0, 3}, 3);
+    auto element3 = cache.Get(Time{7, 0, 3});
+    EXPECT_EQ(*element3, 3);
+
+    Time replaced_key;
+
+    for (size_t i = 1; i <= 2; ++i)
+    {
+        const auto key = Time{7, 0, i};
+
+        if (!cache.Cached(key))
+        {
+            replaced_key = key;
+        }
+    }
+
+    EXPECT_FALSE(cache.Cached(replaced_key));
+    EXPECT_FALSE(cache.TryGet(replaced_key).second);
+    EXPECT_THROW(cache.Get(replaced_key), std::range_error);
+    EXPECT_EQ(*element1, 1);
+    EXPECT_EQ(*element2, 2);
+    EXPECT_EQ(*element3, 3);
 }

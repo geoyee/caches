@@ -9,13 +9,17 @@
 #include <array>
 
 #ifndef CUSTOM_HASHMAP
-template <typename Key, typename Value>
-using fifo_cache_t = typename caches::fixed_sized_cache<Key, Value, caches::FIFOCachePolicy<Key>>;
+template <typename Key, typename Value, typename Hash = std::hash<Key>,
+          typename Eq = std::equal_to<Key>>
+using fifo_cache_t = typename caches::fixed_sized_cache<
+    Key, Value, caches::FIFOCachePolicy<Key, Hash, Eq>,
+    std::unordered_map<Key, caches::WrappedValue<Value>, Hash, Eq>>;
 #else
-template <typename Key, typename Value>
-using fifo_cache_t =
-    typename caches::fixed_sized_cache<Key, Value, caches::FIFOCachePolicy<Key>,
-                                       phmap::node_hash_map<Key, std::shared_ptr<Value>>>;
+template <typename Key, typename Value, typename Hash = std::hash<Key>,
+          typename Eq = std::equal_to<Key>>
+using fifo_cache_t = typename caches::fixed_sized_cache<
+    Key, Value, caches::FIFOCachePolicy<Key, Hash, Eq>,
+    phmap::node_hash_map<Key, caches::WrappedValue<Value>, Hash, Eq>>;
 #endif /* CUSTOM_HASHMAP */
 
 TEST(FIFOCache, Simple_Test)
@@ -225,4 +229,50 @@ TEST(FIFOCache, InvalidSize)
 {
     using test_type = fifo_cache_t<std::string, int>;
     EXPECT_THROW(test_type cache{0}, std::invalid_argument);
+}
+
+TEST(FIFOCache, UserData_Key)
+{
+    // Assuming that this structure comes from a third-party library,
+    // it is not easy to add methods for hash calculation and equality determination to it,
+    // so we can construct an imitation function that passes a template argument to the
+    struct Time
+    {
+        size_t hour, minute, second;
+    };
+
+    struct TimeHash
+    {
+        size_t operator()(const Time &t) const
+        {
+            size_t value = (t.hour << 12) | (t.minute << 6) | t.second;
+            return std::hash<size_t>()(value);
+        }
+    };
+
+    struct TimeEq
+    {
+        bool operator()(const Time &t1, const Time &t2) const
+        {
+            return t1.hour == t2.hour && t1.minute == t2.minute && t1.second == t2.second;
+        }
+    };
+
+    fifo_cache_t<Time, std::string, TimeHash, TimeEq> fc(2);
+
+    fc.Put(Time{7, 0, 0}, "get up");
+    fc.Put(Time{7, 30, 0}, "have breakfast");
+
+    EXPECT_EQ(fc.Size(), 2);
+    EXPECT_EQ(*fc.Get(Time{7, 0, 0}), "get up");
+    EXPECT_EQ(*fc.Get(Time{7, 30, 0}), "have breakfast");
+
+    fc.Put(Time{7, 0, 0}, "sleep");
+    EXPECT_EQ(fc.Size(), 2);
+    EXPECT_EQ(*fc.Get(Time{7, 0, 0}), "sleep");
+
+    fc.Put(Time{8, 30, 0}, "get up again");
+    EXPECT_THROW(fc.Get(Time{7, 0, 0}), std::range_error);
+    EXPECT_EQ(*fc.Get(Time{7, 30, 0}), "have breakfast");
+    EXPECT_EQ(*fc.Get(Time{8, 30, 0}), "get up again");
 }
