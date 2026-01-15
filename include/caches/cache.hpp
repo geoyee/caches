@@ -25,7 +25,7 @@ template <typename V>
 using WrappedValue = std::shared_ptr<V>;
 
 /**
- * \brief Shared_ptr wrapper with deleter configuration
+ * \brief Default allocator of value type
  */
 template <typename T>
 struct default_creator
@@ -57,15 +57,15 @@ std::shared_ptr<T> make_shared_with_allocator_and_deleter(const T &arg)
  * compatible interface
  * \tparam Hash Type of a hash function of key to be used with the cache
  * \tparam Eq Type of a a equal function of key to be used with the cache
- * \tparam Allocator Type of a a create function of value to be used with the cache
  * \tparam Deleter Type of a a delete function of value to be used with the cache
+ * \tparam Allocator Type of a a create function of value to be used with the cache
  */
 template <typename Key, typename Value,
           template <typename, typename, typename> class Policy = NoCachePolicy,
           template <typename, typename, typename, typename> class HashMap = std::unordered_map,
           typename Hash = std::hash<Key>, typename Eq = std::equal_to<Key>,
-          typename Allocator = default_creator<Value>,
-          typename Deleter = std::default_delete<Value>>
+          typename Deleter = std::default_delete<Value>,
+          typename Allocator = default_creator<Value>>
 class fixed_sized_cache
 {
   public:
@@ -217,8 +217,7 @@ class fixed_sized_cache
     {
         operation_guard lock{safe_op};
 
-        std::for_each(begin(), end(),
-                      [&](const std::pair<const Key, value_type> &el)
+        std::for_each(begin(), end(), [&](const std::pair<const Key, value_type> &el)
                       { cache_policy.Erase(el.first); });
         cache_items_map.clear();
     }
