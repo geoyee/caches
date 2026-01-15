@@ -27,10 +27,25 @@ using WrappedValue = std::shared_ptr<V>;
 /**
  * \brief Shared_ptr wrapper with deleter configuration
  */
-template <typename T, typename Deleter, typename... Args>
-std::shared_ptr<T> make_shared_with_deleter(Args &&...args)
+template <typename T>
+struct default_creator
 {
-    return std::shared_ptr<T>(new T(std::forward<Args>(args)...), std::move(Deleter()));
+    T *operator()(const T &arg) const
+    {
+        return new T(arg);
+    }
+};
+
+/**
+ * \brief Shared_ptr wrapper with allocator and deleter configuration
+ */
+template <typename T, typename Allocator, typename Deleter>
+std::shared_ptr<T> make_shared_with_allocator_and_deleter(const T &arg)
+{
+    Allocator allocator;
+    Deleter deleter;
+    T *ptr = allocator(arg);
+    return std::shared_ptr<T>(ptr, deleter);
 }
 
 /**
@@ -42,12 +57,14 @@ std::shared_ptr<T> make_shared_with_deleter(Args &&...args)
  * compatible interface
  * \tparam Hash Type of a hash function of key to be used with the cache
  * \tparam Eq Type of a a equal function of key to be used with the cache
+ * \tparam Allocator Type of a a create function of value to be used with the cache
  * \tparam Deleter Type of a a delete function of value to be used with the cache
  */
 template <typename Key, typename Value,
           template <typename, typename, typename> class Policy = NoCachePolicy,
           template <typename, typename, typename, typename> class HashMap = std::unordered_map,
           typename Hash = std::hash<Key>, typename Eq = std::equal_to<Key>,
+          typename Allocator = default_creator<Value>,
           typename Deleter = std::default_delete<Value>>
 class fixed_sized_cache
 {
@@ -220,8 +237,8 @@ class fixed_sized_cache
     void Insert(const Key &key, const Value &value)
     {
         cache_policy.Insert(key);
-        cache_items_map.emplace(
-            std::make_pair(key, make_shared_with_deleter<Value, Deleter>(value)));
+        cache_items_map.emplace(std::make_pair(
+            key, make_shared_with_allocator_and_deleter<Value, Allocator, Deleter>(value)));
     }
 
     void Erase(const_iterator elem)
@@ -241,7 +258,8 @@ class fixed_sized_cache
     void Update(const Key &key, const Value &value)
     {
         cache_policy.Touch(key);
-        cache_items_map[key] = make_shared_with_deleter<Value, Deleter>(value);
+        cache_items_map[key] =
+            make_shared_with_allocator_and_deleter<Value, Allocator, Deleter>(value);
     }
 
     const_iterator FindElem(const Key &key) const
