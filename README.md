@@ -63,7 +63,7 @@ For example, you can declare LRU cache type like that:
 
 template <typename Key, typename Value>
 using lru_cache_t = typename caches::fixed_sized_cache<Key, Value, caches::LRUCachePolicy,
-                                                       phmap::node_hash_map<Key, Value>>;
+                                                       phmap::node_hash_map>;
 // ...
 lru_cache_t<std::string, std::size_t> cache{16};
 cache.Put("Hello", 1);
